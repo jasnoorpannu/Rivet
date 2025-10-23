@@ -1,1 +1,36 @@
-1 +2*3
+fn greet(name) {
+  return "Hello, " + name;
+}
+
+print greet("Rivet");                 // string concat
+
+let t = true;
+let f = false;
+print t && !f;                        // true
+print t || f;                         // true
+print (t && f) || false;              // false
+
+print "abc" < "abd";                  // true (lexicographic)
+print "abc" == "abc";                 // true
+print "x" + "y" == "xy";              // true
+
+let nums = [1, 2, 3, 4, 5];
+print nums;                           // [1, 2, 3, 4, 5]
+
+var sum = 0;
+for i in nums {                       // for-in over array
+  sum = sum + i;
+}
+print sum;                            // 15
+
+for ch in "hi!" {                     // for-in over string (char strings)
+  print ch;
+}
+
+var s2 = 0;
+for (var i = 1; i <= 4; i = i + 1) {  // C-style for still works
+  s2 = s2 + i;
+}
+print s2;                             // 10
+
+if ("cat" >= "car") { print true; } else { print false; }
