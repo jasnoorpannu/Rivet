@@ -27,9 +27,8 @@ while (count < 3) {
 }
 
 // --- C-style for loop ---
-for (var i = 0; i < 5; ) {
+for (var i = 0; i < 5; i = i + 1) {
   print "for i = " + i;
-  i = i + 1;
 }
 
 // --- Arrays ---
