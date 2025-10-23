@@ -1,4 +1,1 @@
-let m = "Hello Rivet Lang";
-fn main(){
-    return m;
-}
+1 +2*3
