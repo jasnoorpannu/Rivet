@@ -7,25 +7,43 @@ namespace rivet {
 
 enum class TokenKind : uint16_t {
   // Special
-  End, Error,
+  End,
+  Error,
 
   // Literals & identifiers
-  Identifier, Number, String,
+  Identifier,
+  Number,
+  String,
 
   // Keywords
-  KwLet, KwVar, KwFn, KwIf, KwElse, KwWhile, KwFor, KwReturn,
-  KwTrue, KwFalse, KwNil,
+  KwLet,
+  KwVar,
+  KwFn,
+  KwIf,
+  KwElse,
+  KwWhile,
+  KwFor,
+  KwIn,       // for-in
+  KwReturn,
+  KwPrint,
+  KwTrue,
+  KwFalse,
+  KwNil,      // reserved (unused right now, but fine to keep)
 
-  // Punctuation / operators
-  LParen, RParen, LBrace, RBrace, LBracket, RBracket,
+  // Punctuation
+  LParen, RParen,
+  LBrace, RBrace,
+  LBracket, RBracket,
   Comma, Dot, Colon, Semicolon,
 
+  // Operators
   Plus, Minus, Star, Slash, Percent,
   Bang, BangEqual,
   Equal, EqualEqual,
   Less, LessEqual,
   Greater, GreaterEqual,
-  Arrow, // "->"
+  AndAnd, OrOr,         // &&, ||
+  Arrow                 // ->
 };
 
 struct SourcePos {
@@ -34,9 +52,9 @@ struct SourcePos {
 };
 
 struct Token {
-  TokenKind kind {TokenKind::End};
-  std::string lexeme;   // raw slice copied for simplicity
-  SourcePos   pos {};   // start position of token
+  TokenKind   kind {TokenKind::End};
+  std::string lexeme;   // raw text slice (strings are stored without quotes)
+  SourcePos   pos {};   // starting position of token
 };
 
 inline const char* to_string(TokenKind k) {
@@ -46,6 +64,7 @@ inline const char* to_string(TokenKind k) {
     case TokenKind::Identifier: return "Identifier";
     case TokenKind::Number: return "Number";
     case TokenKind::String: return "String";
+
     case TokenKind::KwLet: return "let";
     case TokenKind::KwVar: return "var";
     case TokenKind::KwFn: return "fn";
@@ -53,10 +72,13 @@ inline const char* to_string(TokenKind k) {
     case TokenKind::KwElse: return "else";
     case TokenKind::KwWhile: return "while";
     case TokenKind::KwFor: return "for";
+    case TokenKind::KwIn: return "in";
     case TokenKind::KwReturn: return "return";
+    case TokenKind::KwPrint: return "print";
     case TokenKind::KwTrue: return "true";
     case TokenKind::KwFalse: return "false";
     case TokenKind::KwNil: return "nil";
+
     case TokenKind::LParen: return "(";
     case TokenKind::RParen: return ")";
     case TokenKind::LBrace: return "{";
@@ -67,11 +89,13 @@ inline const char* to_string(TokenKind k) {
     case TokenKind::Dot: return ".";
     case TokenKind::Colon: return ":";
     case TokenKind::Semicolon: return ";";
+
     case TokenKind::Plus: return "+";
     case TokenKind::Minus: return "-";
     case TokenKind::Star: return "*";
     case TokenKind::Slash: return "/";
     case TokenKind::Percent: return "%";
+
     case TokenKind::Bang: return "!";
     case TokenKind::BangEqual: return "!=";
     case TokenKind::Equal: return "=";
@@ -80,6 +104,9 @@ inline const char* to_string(TokenKind k) {
     case TokenKind::LessEqual: return "<=";
     case TokenKind::Greater: return ">";
     case TokenKind::GreaterEqual: return ">=";
+
+    case TokenKind::AndAnd: return "&&";
+    case TokenKind::OrOr: return "||";
     case TokenKind::Arrow: return "->";
   }
   return "Unknown";

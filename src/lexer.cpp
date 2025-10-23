@@ -1,8 +1,11 @@
 #include "lexer.hpp"
 #include <cctype>
 #include <cassert>
+#include <unordered_map>
 
 namespace rivet {
+
+// ---------------- core ----------------
 
 Lexer::Lexer(std::string source, std::string filename)
   : m_src(std::move(source)), m_filename(std::move(filename)) {}
@@ -33,6 +36,7 @@ Token Lexer::make_token(TokenKind kind, std::string_view text) {
   Token t;
   t.kind = kind;
   t.lexeme.assign(text.begin(), text.end());
+  // position is start column = current col - len(text)
   t.pos = {m_line, m_col - static_cast<int>(text.size())};
   return t;
 }
@@ -44,6 +48,8 @@ Token Lexer::error_token(const std::string& msg) {
   t.pos = {m_line, m_col};
   return t;
 }
+
+// ------------- skipping -------------
 
 void Lexer::skip_space_and_comments() {
   for (;;) {
@@ -69,23 +75,29 @@ void Lexer::skip_space_and_comments() {
   }
 }
 
+// ------------- keywords -------------
+
 TokenKind Lexer::keyword_kind(std::string_view s) {
   static const std::unordered_map<std::string_view, TokenKind> map = {
-    {"let", TokenKind::KwLet},
-    {"var", TokenKind::KwVar},
-    {"fn", TokenKind::KwFn},
-    {"if", TokenKind::KwIf},
-    {"else", TokenKind::KwElse},
-    {"while", TokenKind::KwWhile},
-    {"for", TokenKind::KwFor},
+    {"let",    TokenKind::KwLet},
+    {"var",    TokenKind::KwVar},
+    {"fn",     TokenKind::KwFn},
+    {"if",     TokenKind::KwIf},
+    {"else",   TokenKind::KwElse},
+    {"while",  TokenKind::KwWhile},
+    {"for",    TokenKind::KwFor},
+    {"in",     TokenKind::KwIn},
     {"return", TokenKind::KwReturn},
-    {"true", TokenKind::KwTrue},
-    {"false", TokenKind::KwFalse},
-    {"nil", TokenKind::KwNil},
+    {"print",  TokenKind::KwPrint},
+    {"true",   TokenKind::KwTrue},
+    {"false",  TokenKind::KwFalse},
+    {"nil",    TokenKind::KwNil},
   };
   if (auto it = map.find(s); it != map.end()) return it->second;
   return TokenKind::Identifier;
 }
+
+// ------------- scanners -------------
 
 Token Lexer::identifier_or_keyword() {
   size_t start = m_index;
@@ -112,20 +124,25 @@ Token Lexer::string() {
   size_t start = m_index;
 
   while (peek() != '\0' && peek() != quote) {
-    if (peek() == '\\') { advance(); if (peek() != '\0') advance(); }
-    else advance();
+    if (peek() == '\\') { // escape sequence: skip next char literally
+      advance();
+      if (peek() != '\0') advance();
+    } else {
+      advance();
+    }
   }
   if (peek() == '\0') {
     return error_token("Unterminated string");
   }
-  // closing quote
   size_t end = m_index;
-  advance();
+  advance(); // closing quote
 
+  // Store inner contents as the token's lexeme (no quotes)
   std::string_view inner{m_src.data() + start, end - start};
-  Token t = make_token(TokenKind::String, inner);
-  return t;
+  return make_token(TokenKind::String, inner);
 }
+
+// ------------- main ---------------
 
 Token Lexer::next() {
   skip_space_and_comments();
@@ -133,10 +150,6 @@ Token Lexer::next() {
   if (c == '\0') {
     return make_token(TokenKind::End, "");
   }
-
-  // Remember start position for lexeme reconstruction
-  size_t start = m_index;
-  int start_col = m_col;
 
   // Identifiers
   if (std::isalpha(static_cast<unsigned char>(c)) || c == '_') {
@@ -151,9 +164,10 @@ Token Lexer::next() {
     return string();
   }
 
-  // Single / double char tokens
+  // Single / compound operators & punctuation
   advance();
   switch (c) {
+    // Brackets / braces / parens / punctuation
     case '(': return make_token(TokenKind::LParen, "(");
     case ')': return make_token(TokenKind::RParen, ")");
     case '{': return make_token(TokenKind::LBrace, "{");
@@ -164,24 +178,51 @@ Token Lexer::next() {
     case '.': return make_token(TokenKind::Dot, ".");
     case ':': return make_token(TokenKind::Colon, ":");
     case ';': return make_token(TokenKind::Semicolon, ";");
+
+    // Math
     case '+': return make_token(TokenKind::Plus, "+");
-    case '-':
+    case '-': {
       if (match('>')) return make_token(TokenKind::Arrow, "->");
       return make_token(TokenKind::Minus, "-");
+    }
     case '*': return make_token(TokenKind::Star, "*");
     case '/': return make_token(TokenKind::Slash, "/");
     case '%': return make_token(TokenKind::Percent, "%");
-    case '!': return make_token(match('=') ? TokenKind::BangEqual : TokenKind::Bang, match('=') ? "!=" : "!");
-    case '=': return make_token(match('=') ? TokenKind::EqualEqual : TokenKind::Equal, (peek()=='=')?"==":"=");
-    case '<': return make_token(match('=') ? TokenKind::LessEqual : TokenKind::Less, (peek()=='=')?"<=":"<");
-    case '>': return make_token(match('=') ? TokenKind::GreaterEqual : TokenKind::Greater, (peek()=='=')?">=":">");
+
+    // Logical and comparison
+    case '!': {
+      bool eq = match('=');
+      return make_token(eq ? TokenKind::BangEqual : TokenKind::Bang, eq ? "!=" : "!");
+    }
+    case '=': {
+      bool eq = match('=');
+      return make_token(eq ? TokenKind::EqualEqual : TokenKind::Equal, eq ? "==" : "=");
+    }
+    case '<': {
+      bool eq = match('=');
+      return make_token(eq ? TokenKind::LessEqual : TokenKind::Less, eq ? "<=" : "<");
+    }
+    case '>': {
+      bool eq = match('=');
+      return make_token(eq ? TokenKind::GreaterEqual : TokenKind::Greater, eq ? ">=" : ">");
+    }
+
+    // && and ||
+    case '&': {
+      if (match('&')) return make_token(TokenKind::AndAnd, "&&");
+      break; // fallthrough to error
+    }
+    case '|': {
+      if (match('|')) return make_token(TokenKind::OrOr, "||");
+      break; // fallthrough to error
+    }
   }
 
   // Unknown character
   Token t;
   t.kind = TokenKind::Error;
   t.lexeme = std::string("Unexpected character: '") + static_cast<char>(c) + "'";
-  t.pos = {m_line, start_col};
+  t.pos = {m_line, m_col - 1}; // we already advanced once
   return t;
 }
 
