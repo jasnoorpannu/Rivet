@@ -3,6 +3,8 @@
 #include <sstream>
 #include <string>
 #include "lexer.hpp"
+#include "parser.hpp"
+#include "eval.hpp"
 #include "rivet/token.hpp"
 
 using namespace rivet;
@@ -10,12 +12,10 @@ using namespace rivet;
 static std::string slurp_file(const std::string& path) {
   std::ifstream in(path, std::ios::binary);
   if (!in) throw std::runtime_error("Could not open file: " + path);
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  return ss.str();
+  std::ostringstream ss; ss << in.rdbuf(); return ss.str();
 }
 
-static int run_lex(const std::string& code, const std::string& filename) {
+static int lex_only(const std::string& code, const std::string& filename) {
   Lexer lx(code, filename);
   for (;;) {
     Token t = lx.next();
@@ -32,15 +32,31 @@ static int run_lex(const std::string& code, const std::string& filename) {
   return 0;
 }
 
-static int repl() {
-  std::cout << "Rivet REPL (lexer demo) — type Ctrl+C to exit\n";
-  std::string line, buf;
-  for (;;) {
+static int eval_expr_str(const std::string& code, const std::string& filename) {
+  Parser p(code, filename);
+  auto expr = p.parse_expression();
+  double out = eval_expr(*expr);
+  // Print with minimal trailing zeros
+  std::cout << out << "\n";
+  return 0;
+}
+
+static int repl(bool lex_mode) {
+  std::cout << "Rivet REPL — " << (lex_mode ? "lexer mode" : "eval mode") << " — Ctrl+C to exit\n";
+  std::string line;
+  while (true) {
     std::cout << "rvt> " << std::flush;
     if (!std::getline(std::cin, line)) break;
-    buf = line + "\n";
-    int rc = run_lex(buf, "<stdin>");
-    if (rc != 0) return rc;
+    if (line.empty()) continue;
+    try {
+      if (lex_mode) {
+        lex_only(line + "\n", "<stdin>");
+      } else {
+        eval_expr_str(line + "\n", "<stdin>");
+      }
+    } catch (const std::exception& e) {
+      std::cerr << e.what() << "\n";
+    }
   }
   return 0;
 }
@@ -48,19 +64,20 @@ static int repl() {
 int main(int argc, char** argv) {
   try {
     if (argc == 1) {
-      return repl();
+      return repl(/*lex_mode=*/false);
     }
-    // Simple CLI:
-    //   rvt run <file>  — will lex and print tokens (parser comes next)
     std::string cmd = argv[1];
-    if (cmd == "run" && argc >= 3) {
-      std::string path = argv[2];
-      auto code = slurp_file(path);
-      return run_lex(code, path);
+    if (cmd == "--lex") {
+      if (argc == 2) return repl(true);
+      if (argc >= 3) return lex_only(slurp_file(argv[2]), argv[2]);
+    } else if (cmd == "run" && argc >= 3) {
+      return eval_expr_str(slurp_file(argv[2]), argv[2]);
     }
     std::cerr << "Usage:\n"
-              << "  rvt            # start REPL (lexer demo)\n"
-              << "  rvt run <file> # lex and print tokens\n";
+              << "  rvt           # REPL (evaluate expressions)\n"
+              << "  rvt --lex     # REPL (print tokens)\n"
+              << "  rvt --lex <file.rvt>\n"
+              << "  rvt run <file.rvt>\n";
     return 2;
   } catch (const std::exception& e) {
     std::cerr << "fatal: " << e.what() << "\n";
