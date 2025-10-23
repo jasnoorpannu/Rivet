@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 namespace rivet {
 
