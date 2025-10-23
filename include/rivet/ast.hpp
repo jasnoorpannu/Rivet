@@ -62,9 +62,9 @@ struct Return  { ExprPtr value; };
 // for-in: for ident in expr { ... }
 struct ForIn   { std::string var; ExprPtr iterable; StmtPtr body; };
 
-// (kept from before)
-// for (init; cond; step) body  — still supported
-struct ForC    { StmtPtr init; ExprPtr cond; ExprPtr step; StmtPtr body; };
+// C-style for: for (init; cond; step) body
+// NOTE: step is a STATEMENT now (e.g., assignment or call), not an expression.
+struct ForC    { StmtPtr init; ExprPtr cond; StmtPtr step; StmtPtr body; };
 
 struct Stmt {
   std::variant<Let, Var, Assign, ExprStmt, Block, If, While, Print, FnDecl, Return, ForIn, ForC> node;
@@ -80,7 +80,7 @@ struct Stmt {
   static StmtPtr make_fn(std::string n, std::vector<std::string> ps, StmtPtr b){ return std::make_unique<Stmt>(Stmt{FnDecl{std::move(n), std::move(ps), std::move(b)}}); }
   static StmtPtr make_return(ExprPtr v){ return std::make_unique<Stmt>(Stmt{Return{std::move(v)}}); }
   static StmtPtr make_for_in(std::string v, ExprPtr it, StmtPtr b){ return std::make_unique<Stmt>(Stmt{ForIn{std::move(v), std::move(it), std::move(b)}}); }
-  static StmtPtr make_for_c(StmtPtr i, ExprPtr c, ExprPtr s, StmtPtr b){ return std::make_unique<Stmt>(Stmt{ForC{std::move(i), std::move(c), std::move(s), std::move(b)}}); }
+  static StmtPtr make_for_c(StmtPtr i, ExprPtr c, StmtPtr s, StmtPtr b){ return std::make_unique<Stmt>(Stmt{ForC{std::move(i), std::move(c), std::move(s), std::move(b)}}); }
 };
 
 using Program = std::vector<StmtPtr>;

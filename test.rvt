@@ -1,36 +1,49 @@
-fn greet(name) {
-  return "Hello, " + name;
+// --- Variable declarations ---
+let x = 5;
+var y = 3;
+
+// --- Arithmetic + print ---
+print x + y;                // 8
+
+// --- Strings and concatenation ---
+let greet = "Hello";
+let name = "Rivet";
+print greet + ", " + name;  // Hello, Rivet
+
+// --- Booleans and comparison ---
+let ok = true;
+let fail = false;
+if (ok && !fail) {
+  print "Status: OK";
+} else {
+  print "Status: FAIL";
 }
 
-print greet("Rivet");                 // string concat
-
-let t = true;
-let f = false;
-print t && !f;                        // true
-print t || f;                         // true
-print (t && f) || false;              // false
-
-print "abc" < "abd";                  // true (lexicographic)
-print "abc" == "abc";                 // true
-print "x" + "y" == "xy";              // true
-
-let nums = [1, 2, 3, 4, 5];
-print nums;                           // [1, 2, 3, 4, 5]
-
-var sum = 0;
-for i in nums {                       // for-in over array
-  sum = sum + i;
-}
-print sum;                            // 15
-
-for ch in "hi!" {                     // for-in over string (char strings)
-  print ch;
+// --- While loop ---
+var count = 0;
+while (count < 3) {
+  print "While count = " + count;
+  count = count + 1;
 }
 
-var s2 = 0;
-for (var i = 1; i <= 4; i = i + 1) {  // C-style for still works
-  s2 = s2 + i;
+// --- C-style for loop ---
+for (var i = 0; i < 5; ) {
+  print "for i = " + i;
+  i = i + 1;
 }
-print s2;                             // 10
 
-if ("cat" >= "car") { print true; } else { print false; }
+// --- Arrays ---
+let nums = [10, 20, 30];
+print nums;                 // [10, 20, 30]
+
+// --- for-in loop over array ---
+for n in nums {
+  print "n = " + n;
+}
+
+// --- Function definition + call ---
+fn add(a, b) {
+  return a + b;
+}
+
+print "add(7,8) = " + add(7, 8)
