@@ -9,50 +9,55 @@
 
 using namespace rivet;
 
+// --- tiny helper to print Values nicely ---
+static std::string to_string_value(const Value& v) {
+  if (is_number(v))  { std::ostringstream os; os << as_number(v); return os.str(); }
+  if (is_bool(v))    return as_bool(v) ? "true" : "false";
+  if (is_string(v))  return as_string(v);
+  if (is_array(v)) {
+    const auto& arr = *as_array(v);
+    std::string s = "[";
+    for (size_t i = 0; i < arr.items.size(); ++i) {
+      if (i) s += ", ";
+      s += to_string_value(arr.items[i]);
+    }
+    s += "]";
+    return s;
+  }
+  return "<unknown>";
+}
+
 static std::string slurp_file(const std::string& path) {
   std::ifstream in(path, std::ios::binary);
   if (!in) throw std::runtime_error("Could not open file: " + path);
   std::ostringstream ss; ss << in.rdbuf(); return ss.str();
 }
 
-static int lex_only(const std::string& code, const std::string& filename) {
-  Lexer lx(code, filename);
-  for (;;) {
-    Token t = lx.next();
-    if (t.kind == TokenKind::Error) {
-      std::cerr << filename << ":" << t.pos.line << ":" << t.pos.col
-                << ": lex error: " << t.lexeme << "\n";
-      return 1;
-    }
-    if (t.kind == TokenKind::End) break;
-    std::cout << t.pos.line << ":" << t.pos.col
-              << "  " << to_string(t.kind)
-              << "  \"" << t.lexeme << "\"\n";
+static int run_file(const std::string& path) {
+  Env env; env.push();
+  Parser p(slurp_file(path), path);
+  Program prog = p.parse_program();
+  auto last = exec_program(prog, env);
+  if (last.has_value()) {
+    std::cout << to_string_value(*last) << "\n";
   }
   return 0;
 }
 
-static int eval_expr_str(const std::string& code, const std::string& filename) {
-  Parser p(code, filename);
-  auto expr = p.parse_expression();
-  double out = eval_expr(*expr);
-  // Print with minimal trailing zeros
-  std::cout << out << "\n";
-  return 0;
-}
-
-static int repl(bool lex_mode) {
-  std::cout << "Rivet REPL — " << (lex_mode ? "lexer mode" : "eval mode") << " — Ctrl+C to exit\n";
+static int repl() {
+  std::cout << "Rivet REPL — statements/expressions — Ctrl+C to exit\n";
+  Env env; env.push();
   std::string line;
   while (true) {
     std::cout << "rvt> " << std::flush;
     if (!std::getline(std::cin, line)) break;
     if (line.empty()) continue;
     try {
-      if (lex_mode) {
-        lex_only(line + "\n", "<stdin>");
-      } else {
-        eval_expr_str(line + "\n", "<stdin>");
+      Parser p(line + "\n", "<stdin>");
+      auto stmt = p.parse_one_stmt();        // <- use statement parser
+      auto out  = exec_stmt(*stmt, env);     // value if expression statement
+      if (out.has_value()) {
+        std::cout << to_string_value(*out) << "\n";
       }
     } catch (const std::exception& e) {
       std::cerr << e.what() << "\n";
@@ -63,20 +68,13 @@ static int repl(bool lex_mode) {
 
 int main(int argc, char** argv) {
   try {
-    if (argc == 1) {
-      return repl(/*lex_mode=*/false);
-    }
+    if (argc == 1) return repl();
     std::string cmd = argv[1];
-    if (cmd == "--lex") {
-      if (argc == 2) return repl(true);
-      if (argc >= 3) return lex_only(slurp_file(argv[2]), argv[2]);
-    } else if (cmd == "run" && argc >= 3) {
-      return eval_expr_str(slurp_file(argv[2]), argv[2]);
+    if (cmd == "run" && argc >= 3) {
+      return run_file(argv[2]);
     }
     std::cerr << "Usage:\n"
-              << "  rvt           # REPL (evaluate expressions)\n"
-              << "  rvt --lex     # REPL (print tokens)\n"
-              << "  rvt --lex <file.rvt>\n"
+              << "  rvt           # REPL (statements + expressions)\n"
               << "  rvt run <file.rvt>\n";
     return 2;
   } catch (const std::exception& e) {
