@@ -63,7 +63,6 @@ struct Return  { ExprPtr value; };
 struct ForIn   { std::string var; ExprPtr iterable; StmtPtr body; };
 
 // C-style for: for (init; cond; step) body
-// NOTE: step is a STATEMENT now (e.g., assignment or call), not an expression.
 struct ForC    { StmtPtr init; ExprPtr cond; StmtPtr step; StmtPtr body; };
 
 struct Stmt {
@@ -85,4 +84,4 @@ struct Stmt {
 
 using Program = std::vector<StmtPtr>;
 
-} // namespace rivet
+}

@@ -6,16 +6,13 @@
 namespace rivet {
 
 enum class TokenKind : uint16_t {
-  // Special
   End,
   Error,
-
-  // Literals & identifiers
   Identifier,
   Number,
   String,
 
-  // Keywords
+  
   KwLet,
   KwVar,
   KwFn,
@@ -23,27 +20,27 @@ enum class TokenKind : uint16_t {
   KwElse,
   KwWhile,
   KwFor,
-  KwIn,       // for-in
+  KwIn,
   KwReturn,
   KwPrint,
   KwTrue,
   KwFalse,
-  KwNil,      // reserved (unused right now, but fine to keep)
+  KwNil,
 
-  // Punctuation
+  
   LParen, RParen,
   LBrace, RBrace,
   LBracket, RBracket,
   Comma, Dot, Colon, Semicolon,
 
-  // Operators
+  
   Plus, Minus, Star, Slash, Percent,
   Bang, BangEqual,
   Equal, EqualEqual,
   Less, LessEqual,
   Greater, GreaterEqual,
-  AndAnd, OrOr,         // &&, ||
-  Arrow                 // ->
+  AndAnd, OrOr,
+  Arrow
 };
 
 struct SourcePos {
@@ -53,8 +50,8 @@ struct SourcePos {
 
 struct Token {
   TokenKind   kind {TokenKind::End};
-  std::string lexeme;   // raw text slice (strings are stored without quotes)
-  SourcePos   pos {};   // starting position of token
+  std::string lexeme;
+  SourcePos   pos {};
 };
 
 inline const char* to_string(TokenKind k) {
@@ -112,4 +109,4 @@ inline const char* to_string(TokenKind k) {
   return "Unknown";
 }
 
-} // namespace rivet
+}

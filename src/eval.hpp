@@ -9,13 +9,13 @@
 
 namespace rivet {
 
-// ---- Forward decl so Value can hold arrays and arrays can hold Values.
+
 struct Array;
 
-// Runtime value: number | bool | string | array
+
 using Value = std::variant<double, bool, std::string, std::shared_ptr<Array>>;
 
-// Now that Value is defined, we can define Array using Value.
+
 struct Array { std::vector<Value> items; };
 
 // --- helpers ---
@@ -37,7 +37,7 @@ inline bool truthy(const Value& v) {
   return false;
 }
 
-struct VarCell { Value val{}; bool mut{}; }; // mut=false => let, true => var
+struct VarCell { Value val{}; bool mut{}; };
 
 class Env {
 public:
@@ -57,15 +57,15 @@ private:
   std::unordered_map<std::string, const FnDecl*> fns;
 };
 
-// Evaluate a single expression
+
 Value eval_expr(const Expr& e, const Env& env);
 
-// Execute a statement; may return a value (expr stmt or return)
+
 std::optional<Value> exec_stmt(const Stmt& s, Env& env,
                                bool* returned = nullptr,
                                Value* ret_val = nullptr);
 
-// Execute whole program
+
 std::optional<Value> exec_program(const Program& p, Env& env);
 
-} // namespace rivet
+}

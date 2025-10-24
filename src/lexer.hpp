@@ -14,7 +14,6 @@ public:
   bool  is_at_end() const { return m_index >= m_src.size(); }
 
 private:
-  // Core
   char  peek() const;
   char  peek_next() const;
   char  advance();
@@ -40,4 +39,4 @@ private:
   int         m_col   {1};
 };
 
-} // namespace rivet
+}

@@ -5,8 +5,6 @@
 
 namespace rivet {
 
-// ---------------- core ----------------
-
 Lexer::Lexer(std::string source, std::string filename)
   : m_src(std::move(source)), m_filename(std::move(filename)) {}
 
@@ -36,7 +34,6 @@ Token Lexer::make_token(TokenKind kind, std::string_view text) {
   Token t;
   t.kind = kind;
   t.lexeme.assign(text.begin(), text.end());
-  // position is start column = current col - len(text)
   t.pos = {m_line, m_col - static_cast<int>(text.size())};
   return t;
 }
@@ -49,22 +46,20 @@ Token Lexer::error_token(const std::string& msg) {
   return t;
 }
 
-// ------------- skipping -------------
-
 void Lexer::skip_space_and_comments() {
   for (;;) {
     char c = peek();
     if (c == ' ' || c == '\t' || c == '\r') { advance(); continue; }
     if (c == '\n') { advance(); continue; }
 
-    // Single-line comment: //
+    
     if (c == '/' && peek_next() == '/') {
       while (peek() != '\n' && peek() != '\0') advance();
       continue;
     }
-    // Block comment: /* ... */
+
     if (c == '/' && peek_next() == '*') {
-      advance(); advance(); // consume '/*'
+      advance(); advance();
       while (peek() != '\0' && !(peek() == '*' && peek_next() == '/')) {
         advance();
       }
@@ -74,8 +69,6 @@ void Lexer::skip_space_and_comments() {
     break;
   }
 }
-
-// ------------- keywords -------------
 
 TokenKind Lexer::keyword_kind(std::string_view s) {
   static const std::unordered_map<std::string_view, TokenKind> map = {
@@ -97,8 +90,6 @@ TokenKind Lexer::keyword_kind(std::string_view s) {
   return TokenKind::Identifier;
 }
 
-// ------------- scanners -------------
-
 Token Lexer::identifier_or_keyword() {
   size_t start = m_index;
   while (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_') advance();
@@ -110,7 +101,7 @@ Token Lexer::number() {
   size_t start = m_index;
   while (std::isdigit(static_cast<unsigned char>(peek()))) advance();
   if (peek() == '.' && std::isdigit(static_cast<unsigned char>(peek_next()))) {
-    advance(); // dot
+    advance();
     while (std::isdigit(static_cast<unsigned char>(peek()))) advance();
   }
   std::string_view text{m_src.data() + start, m_index - start};
@@ -118,13 +109,12 @@ Token Lexer::number() {
 }
 
 Token Lexer::string() {
-  // Consume opening quote
   char quote = advance();
   assert(quote == '"' || quote == '\'');
   size_t start = m_index;
 
   while (peek() != '\0' && peek() != quote) {
-    if (peek() == '\\') { // escape sequence: skip next char literally
+    if (peek() == '\\') {
       advance();
       if (peek() != '\0') advance();
     } else {
@@ -135,14 +125,10 @@ Token Lexer::string() {
     return error_token("Unterminated string");
   }
   size_t end = m_index;
-  advance(); // closing quote
-
-  // Store inner contents as the token's lexeme (no quotes)
+  advance();
   std::string_view inner{m_src.data() + start, end - start};
   return make_token(TokenKind::String, inner);
 }
-
-// ------------- main ---------------
 
 Token Lexer::next() {
   skip_space_and_comments();
@@ -167,7 +153,6 @@ Token Lexer::next() {
   // Single / compound operators & punctuation
   advance();
   switch (c) {
-    // Brackets / braces / parens / punctuation
     case '(': return make_token(TokenKind::LParen, "(");
     case ')': return make_token(TokenKind::RParen, ")");
     case '{': return make_token(TokenKind::LBrace, "{");
@@ -206,19 +191,17 @@ Token Lexer::next() {
       bool eq = match('=');
       return make_token(eq ? TokenKind::GreaterEqual : TokenKind::Greater, eq ? ">=" : ">");
     }
-
-    // && and ||
     case '&': {
       if (match('&')) return make_token(TokenKind::AndAnd, "&&");
-      break; // fallthrough to error
+      break;
     }
     case '|': {
       if (match('|')) return make_token(TokenKind::OrOr, "||");
-      break; // fallthrough to error
+      break;
     }
   }
 
-  // Unknown character
+
   Token t;
   t.kind = TokenKind::Error;
   t.lexeme = std::string("Unexpected character: '") + static_cast<char>(c) + "'";
@@ -226,4 +209,4 @@ Token Lexer::next() {
   return t;
 }
 
-} // namespace rivet
+}

@@ -29,7 +29,6 @@ const Token& Parser::expect(TokenKind k, const char* msg) {
 Program Parser::parse_program() { Program p; while (!check(TokenKind::End)) p.push_back(statement()); return p; }
 StmtPtr Parser::parse_one_stmt() { auto s=statement(); if(!check(TokenKind::End)) throw std::runtime_error(pos_str(filename,current)+"parse error: expected end of input"); return s; }
 
-// ----------------- Statements -----------------
 StmtPtr Parser::statement() {
   if (check(TokenKind::KwLet))    return let_stmt();
   if (check(TokenKind::KwVar))    return var_stmt();
@@ -119,7 +118,7 @@ StmtPtr Parser::while_stmt() {
   return Stmt::make_while(std::move(c), std::move(b));
 }
 
-// ---- for helpers already declared in parser.hpp ----
+
 StmtPtr Parser::let_decl_no_semi() {
   expect(TokenKind::KwLet, "'let'");
   if (!check(TokenKind::Identifier)) throw std::runtime_error(pos_str(filename, current) + "parse error: expected identifier");
@@ -156,11 +155,11 @@ StmtPtr Parser::assign_or_expr_no_semi() {
   return Stmt::make_expr(std::move(e));
 }
 
-// 'for' '(' init? ';' cond? ';' step? ')' stmt    OR   'for' ident 'in' expr stmt
+
 StmtPtr Parser::for_stmt() {
   expect(TokenKind::KwFor, "'for'");
 
-  // for-in (no parentheses): for x in expr stmt
+
   if (!check(TokenKind::LParen)) {
     if (!check(TokenKind::Identifier)) throw std::runtime_error(pos_str(filename, current) + "parse error: expected identifier after 'for'");
     std::string var = current.lexeme; advance();
@@ -170,8 +169,8 @@ StmtPtr Parser::for_stmt() {
     return Stmt::make_for_in(std::move(var), std::move(it), std::move(body));
   }
 
-  // C-style
-  advance(); // '('
+
+  advance();
   StmtPtr init;
   if (!check(TokenKind::Semicolon)) {
     if (check(TokenKind::KwLet))      init = let_decl_no_semi();
@@ -192,7 +191,7 @@ StmtPtr Parser::for_stmt() {
   return Stmt::make_for_c(std::move(init), std::move(cond), std::move(step), std::move(body));
 }
 
-// ----------------- rest unchanged (print/fn/return + expressions) -----------------
+
 StmtPtr Parser::print_stmt() {
   expect(TokenKind::KwPrint, "'print'");
   auto e = expression();
@@ -225,7 +224,6 @@ StmtPtr Parser::return_stmt() {
   return Stmt::make_return(std::move(v));
 }
 
-// ================== Expressions (same as before) ==================
 ExprPtr Parser::expression() { return or_expr(); }
 ExprPtr Parser::or_expr() { auto l=and_expr(); while(check(TokenKind::OrOr)){advance(); auto r=and_expr(); l=Expr::make_binary(std::move(l), BinaryOp::LOr, std::move(r));} return l; }
 ExprPtr Parser::and_expr(){ auto l=equality(); while(check(TokenKind::AndAnd)){advance(); auto r=equality(); l=Expr::make_binary(std::move(l), BinaryOp::LAnd, std::move(r));} return l; }
@@ -247,4 +245,4 @@ ExprPtr Parser::primary(){
   throw std::runtime_error(pos_str(filename, current) + "parse error: expected expression");
 }
 
-} // namespace rivet
+}

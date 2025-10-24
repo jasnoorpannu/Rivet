@@ -73,11 +73,10 @@ static bool equal_values(const Value& a, const Value& b) {
   return true;
 }
 
-// Forward decls
 static Value eval_node(const Expr& e, const Env& env);
 static Value eval_call(const Call& c, Env& env);
 
-// ========== Exprs ==========
+// ========== expr ==========
 static Value eval_number(const NumberLit& n){ return n.value; }
 static Value eval_bool  (const BoolLit& b){ return b.value; }
 static Value eval_string(const StringLit& s){ return s.value; }
@@ -102,7 +101,6 @@ static Value eval_unary(const Unary& u, const Env& env){
 }
 
 static Value eval_binary(const Binary& b, const Env& env){
-  // short-circuit first
   if (b.op == BinaryOp::LOr)  { Value l = eval_node(*b.left, env); if (truthy(l)) return true;  Value r = eval_node(*b.right, env); return truthy(r); }
   if (b.op == BinaryOp::LAnd) { Value l = eval_node(*b.left, env); if (!truthy(l)) return false; Value r = eval_node(*b.right, env); return truthy(r); }
 
@@ -110,7 +108,6 @@ static Value eval_binary(const Binary& b, const Env& env){
   Value r = eval_node(*b.right, env);
   switch (b.op) {
     case BinaryOp::Add:
-      // number + number => numeric add; if either is string, concatenate stringified
       if (is_number(l) && is_number(r)) return as_number(l) + as_number(r);
       if (is_string(l) || is_string(r)) return to_string_value(l) + to_string_value(r);
       throw std::runtime_error("type error: '+' expects number+number or string (+ anything)");
@@ -314,8 +311,8 @@ static Value eval_call(const Call& c, Env& env) {
   bool ret = false; Value rv{};
   exec_stmt(*fn->body, env, &ret, &rv);
   env.pop();
-  if (!ret) return 0.0;   // default return
+  if (!ret) return 0.0;
   return rv;
 }
 
-} // namespace rivet
+}

@@ -9,7 +9,6 @@
 
 using namespace rivet;
 
-// --- tiny helper to print Values nicely ---
 static std::string to_string_value(const Value& v) {
   if (is_number(v))  { std::ostringstream os; os << as_number(v); return os.str(); }
   if (is_bool(v))    return as_bool(v) ? "true" : "false";
@@ -54,8 +53,8 @@ static int repl() {
     if (line.empty()) continue;
     try {
       Parser p(line + "\n", "<stdin>");
-      auto stmt = p.parse_one_stmt();        // <- use statement parser
-      auto out  = exec_stmt(*stmt, env);     // value if expression statement
+      auto stmt = p.parse_one_stmt();
+      auto out  = exec_stmt(*stmt, env);
       if (out.has_value()) {
         std::cout << to_string_value(*out) << "\n";
       }
